@@ -16,7 +16,7 @@ To generate templates for a new day of puzzles, e.g. day 4, run:
 
 ```
 mix advent.gen.day 04
-``
+```
 
 ## Starting another year
 
