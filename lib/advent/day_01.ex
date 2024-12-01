@@ -23,10 +23,20 @@ defmodule Advent.Day01 do
   """
   @spec part_2(String.t()) :: integer
   def part_2(input) do
-    input
-    |> parse()
+    {list_1, list_2} =
+      input
+      |> parse()
+      |> Enum.unzip()
 
-    0
+    list_2_counts =
+      list_2
+      |> Enum.group_by(& &1)
+      |> Enum.map(fn {k, v} -> {k, Enum.count(v)} end)
+      |> Enum.into(%{})
+
+    list_1
+    |> Enum.map(fn x -> x * Map.get(list_2_counts, x, 0) end)
+    |> Enum.sum()
   end
 
   defp parse(input) do
