@@ -26,15 +26,45 @@ defmodule Advent.Day02Test do
   end
 
   describe "part 2" do
-    @tag :skip
     test "example" do
-      assert Day02.part_2(@example_input) == :foo
+      assert Day02.part_2(@example_input) == 4
     end
 
-    @tag :skip
+    test "with bad level at start" do
+      assert Day02.part_2("8 2 3 4 5") == 1
+    end
+
+    test "with bad level at start and middle" do
+      assert Day02.part_2("8 2 3 3 4 5") == 0
+    end
+
+    test "with bad level at end" do
+      assert Day02.part_2("1 2 3 4 3") == 1
+    end
+
+    test "with bad level at end and middle" do
+      assert Day02.part_2("1 2 2 3 4 3") == 0
+    end
+
+    test "with bad level at start and end" do
+      assert Day02.part_2("4 1 2 3 4 3") == 0
+    end
+
+    test "with a bad level in the middle" do
+      assert Day02.part_2("1 2 3 9 4 5") == 1
+    end
+
+    test "with two consecutive bad levels" do
+      assert Day02.part_2("1 2 3 9 9 4 5") == 0
+    end
+
+    test "with two bad levels" do
+      assert Day02.part_2("1 2 9 3 9 4 5") == 0
+    end
+
     @tag :puzzle_input
     test "puzzle input" do
-      assert Day02.part_2(@puzzle_input) == :foo
+      assert Day02.part_2(@puzzle_input) == 337
     end
   end
 end

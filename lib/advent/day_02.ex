@@ -8,24 +8,7 @@ defmodule Advent.Day02 do
   """
   @spec part_1(String.t()) :: integer
   def part_1(input) do
-    input
-    |> parse()
-    |> Enum.count(&is_safe/1)
-  end
-
-  defp is_safe(levels) do
-    [a, b | _] = levels
-    ascending = a < b
-
-    levels
-    |> Enum.chunk_every(2, 1, :discard)
-    |> Enum.all?(fn [a, b] ->
-      if ascending do
-        a < b and b - a <= 3
-      else
-        a > b and a - b <= 3
-      end
-    end)
+    input |> parse() |> count_good(0)
   end
 
   @doc """
@@ -33,10 +16,33 @@ defmodule Advent.Day02 do
   """
   @spec part_2(String.t()) :: integer
   def part_2(input) do
-    input
-    |> parse()
+    input |> parse() |> count_good(1)
+  end
 
-    0
+  defp count_good(input, max_errors) do
+    Enum.count(input, fn levels ->
+      # We call this with both directions, so that we can assume that only
+      # ascending order is correct
+      safe?(nil, levels, 0, max_errors) or safe?(nil, Enum.reverse(levels), 0, max_errors)
+    end)
+  end
+
+  # Too many errors
+  defp safe?(_last, _levels, errors, max) when errors > max, do: false
+
+  # Reached end of list without too many errors
+  defp safe?(_last, [], _errors, _max), do: true
+
+  # Next element matches previous
+  defp safe?(last, [a | levels], errors, max) when is_nil(last) or (a - last) in 1..3 do
+    # Even when a level matches the previous, it might be needed to take it
+    # out, so we try both ways
+    safe?(a, levels, errors, max) or safe?(last, levels, errors + 1, max)
+  end
+
+  # Next element does not match previous
+  defp safe?(last, [_a | levels], errors, max) do
+    safe?(last, levels, errors + 1, max)
   end
 
   defp parse(input) do
