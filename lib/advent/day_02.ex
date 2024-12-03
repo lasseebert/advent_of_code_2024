@@ -34,7 +34,7 @@ defmodule Advent.Day02 do
   defp safe?(_last, [], _errors, _max), do: true
 
   # Next element matches previous
-  defp safe?(last, [a | levels], errors, max) when is_nil(last) or (a - last) in 1..3 do
+  defp safe?(last, [a | levels], errors, max) when is_nil(last) or (is_integer(last) and (a - last) in 1..3) do
     # Even when a level matches the previous, it might be needed to take it
     # out, so we try both ways
     safe?(a, levels, errors, max) or safe?(last, levels, errors + 1, max)
