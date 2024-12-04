@@ -56,10 +56,29 @@ defmodule Advent.Day04 do
   """
   @spec part_2(String.t()) :: integer
   def part_2(input) do
-    input
-    |> parse()
+    map = input |> parse()
 
-    0
+    max_x = map |> Map.keys() |> Enum.map(&elem(&1, 0)) |> Enum.max()
+    max_y = map |> Map.keys() |> Enum.map(&elem(&1, 1)) |> Enum.max()
+
+    for x <- 0..max_x, y <- 0..max_y do
+      {x, y}
+    end
+    |> Enum.count(&x_mas?(map, &1))
+  end
+
+  defp x_mas?(map, coord) do
+    if Map.get(map, coord) == "A" do
+      # The coord is an A. Look for X-formed M-S pairs
+      [[{-1, -1}, {1, 1}], [{-1, 1}, {1, -1}]]
+      |> Enum.all?(fn dirs ->
+        dirs
+        |> Enum.map(&Map.get(map, add(coord, &1)))
+        |> Enum.sort() == ["M", "S"]
+      end)
+    else
+      false
+    end
   end
 
   defp parse(input) do
