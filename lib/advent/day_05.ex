@@ -8,16 +8,24 @@ defmodule Advent.Day05 do
   """
   @spec part_1(String.t()) :: integer
   def part_1(input) do
-    {deps, pages} = input |> parse()
-
-    # Build a map of %{page, set of deps}
-    deps_map =
-      Enum.reduce(deps, %{}, fn {a, b}, acc ->
-        Map.update(acc, a, MapSet.new([b]), &MapSet.put(&1, b))
-      end)
+    {deps_map, pages} = input |> parse()
 
     pages
     |> Enum.filter(&valid_pages?(&1, deps_map))
+    |> Enum.map(&middle_page/1)
+    |> Enum.sum()
+  end
+
+  @doc """
+  Part 2
+  """
+  @spec part_2(String.t()) :: integer
+  def part_2(input) do
+    {deps_map, pages} = input |> parse()
+
+    pages
+    |> Enum.filter(&(not valid_pages?(&1, deps_map)))
+    |> Enum.map(&sort_correctly(&1, deps_map))
     |> Enum.map(&middle_page/1)
     |> Enum.sum()
   end
@@ -38,15 +46,17 @@ defmodule Advent.Day05 do
     Enum.at(pages, div(Enum.count(pages), 2))
   end
 
-  @doc """
-  Part 2
-  """
-  @spec part_2(String.t()) :: integer
-  def part_2(input) do
-    input
-    |> parse()
+  defp sort_correctly(pages, deps_map) do
+    Enum.sort(pages, fn a, b ->
+      page_rules = Map.get(deps_map, a, MapSet.new())
 
-    0
+      # This callback function to sort must return true if a should be before b
+      if MapSet.member?(page_rules, b) do
+        true
+      else
+        false
+      end
+    end)
   end
 
   defp parse(input) do
@@ -62,13 +72,19 @@ defmodule Advent.Day05 do
   end
 
   defp parse_deps(input) do
-    input
-    |> String.split("\n", trim: true)
-    |> Enum.map(fn line ->
-      line
-      |> String.split("|")
-      |> Enum.map(&String.to_integer/1)
-      |> List.to_tuple()
+    deps =
+      input
+      |> String.split("\n", trim: true)
+      |> Enum.map(fn line ->
+        line
+        |> String.split("|")
+        |> Enum.map(&String.to_integer/1)
+        |> List.to_tuple()
+      end)
+
+    # Build a map of %{page, set of deps}
+    Enum.reduce(deps, %{}, fn {a, b}, acc ->
+      Map.update(acc, a, MapSet.new([b]), &MapSet.put(&1, b))
     end)
   end
 
