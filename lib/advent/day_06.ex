@@ -10,9 +10,7 @@ defmodule Advent.Day06 do
   def part_1(input) do
     {map, guard} = input |> parse()
 
-    visited = MapSet.new()
-
-    visited
+    MapSet.new()
     |> walk(map, guard)
     |> Enum.count()
   end
@@ -38,13 +36,38 @@ defmodule Advent.Day06 do
 
   @doc """
   Part 2
+
+  Note: This runs in around 6 seconds on my machine. Perhaps there is a smarter
+  way than to just try putting an obstacle on every single point in the normal
+  route?
   """
   @spec part_2(String.t()) :: integer
   def part_2(input) do
-    input
-    |> parse()
+    {map, guard} = input |> parse()
+    {start_pos, _dir} = guard
 
-    0
+    candidates = MapSet.new() |> walk(map, guard) |> MapSet.delete(start_pos)
+    Enum.count(candidates, &loop?(Map.put(map, &1, :wall), guard))
+  end
+
+  defp loop?(map, guard) do
+    walk_loop(MapSet.new(), map, guard)
+  end
+
+  defp walk_loop(visited, map, {pos, dir} = guard) do
+    if MapSet.member?(visited, guard) do
+      true
+    else
+      visited = MapSet.put(visited, guard)
+
+      next_pos = add(pos, dir)
+
+      case Map.get(map, next_pos) do
+        :empty -> walk_loop(visited, map, {next_pos, dir})
+        :wall -> walk_loop(visited, map, {pos, turn_right(dir)})
+        nil -> false
+      end
+    end
   end
 
   defp parse(input) do
