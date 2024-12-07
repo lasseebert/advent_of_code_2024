@@ -10,21 +10,21 @@ defmodule Advent.Day07 do
   def part_1(input) do
     input
     |> parse()
-    |> Enum.filter(&valid?/1)
+    |> Enum.filter(&valid_1?/1)
     |> Enum.map(&elem(&1, 0))
     |> Enum.sum()
   end
 
-  defp valid?({result, [first | values]}) do
-    possible?(result, first, values)
+  defp valid_1?({result, [first | values]}) do
+    possible_1?(result, first, values)
   end
 
-  defp possible?(result, acc, _) when acc > result, do: false
-  defp possible?(result, acc, []) when acc != result, do: false
-  defp possible?(result, acc, []) when acc == result, do: true
+  defp possible_1?(result, acc, _) when acc > result, do: false
+  defp possible_1?(result, acc, []) when acc != result, do: false
+  defp possible_1?(result, acc, []) when acc == result, do: true
 
-  defp possible?(result, acc, [value | values]) do
-    possible?(result, acc + value, values) || possible?(result, acc * value, values)
+  defp possible_1?(result, acc, [value | values]) do
+    possible_1?(result, acc + value, values) || possible_1?(result, acc * value, values)
   end
 
   @doc """
@@ -34,8 +34,26 @@ defmodule Advent.Day07 do
   def part_2(input) do
     input
     |> parse()
+    |> Enum.filter(&valid_2?/1)
+    |> Enum.map(&elem(&1, 0))
+    |> Enum.sum()
+  end
 
-    0
+  defp valid_2?({result, [first | values]}) do
+    possible_2?(result, first, values)
+  end
+
+  defp possible_2?(result, acc, _) when acc > result, do: false
+  defp possible_2?(result, acc, []) when acc != result, do: false
+  defp possible_2?(result, acc, []) when acc == result, do: true
+
+  defp possible_2?(result, acc, [value | values]) do
+    possible_2?(result, acc + value, values) || possible_2?(result, acc * value, values) ||
+      possible_2?(result, concat(acc, value), values)
+  end
+
+  defp concat(acc, value) do
+    [acc, value] |> Enum.map(&Integer.to_string/1) |> Enum.join() |> String.to_integer()
   end
 
   defp parse(input) do
