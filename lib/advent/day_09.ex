@@ -61,13 +61,65 @@ defmodule Advent.Day09 do
 
   @doc """
   Part 2
+
+  Runs in around 1 second on my machine
   """
   @spec part_2(String.t()) :: integer
   def part_2(input) do
-    input
-    |> parse()
+    filesystem = input |> parse()
+    files_rev = filesystem |> Enum.filter(&match?({:file, _, _}, &1)) |> Enum.reverse()
 
-    0
+    processed = MapSet.new()
+
+    checksum_2(filesystem, files_rev, 0, 0, processed)
+  end
+
+  # Terminating condition
+  defp checksum_2([], _, _, sum, _), do: sum
+
+  # When we reach an unprocessed file, we just add it and skip to the next
+  # thing in the filesystem
+  defp checksum_2([{:file, length, id} | filesystem], files_rev, index, sum, processed) do
+    if MapSet.member?(processed, id) do
+      checksum_2(filesystem, files_rev, index + length, sum, processed)
+    else
+      checksum_2(
+        filesystem,
+        files_rev,
+        index + length,
+        sum + part_checksum(index, length, id),
+        MapSet.put(processed, id)
+      )
+    end
+  end
+
+  # We reached free space. Find the right most file that fits in the free space
+  defp checksum_2([{:free, free_length} | filesystem], files_rev, index, sum, processed) do
+    file =
+      Enum.find(files_rev, fn {:file, file_length, id} ->
+        file_length <= free_length and not MapSet.member?(processed, id)
+      end)
+
+    case file do
+      nil ->
+        checksum_2(filesystem, files_rev, index + free_length, sum, processed)
+
+      {:file, file_length, id} ->
+        checksum_2(
+          insert({:free, free_length - file_length}, filesystem),
+          files_rev,
+          index + file_length,
+          sum + part_checksum(index, file_length, id),
+          MapSet.put(processed, id)
+        )
+    end
+  end
+
+  # Calculate checksum for a file in constant time
+  # This is just the formula for adding consecutive numbers being used and then
+  # simplified the final expression
+  defp part_checksum(index, length, id) do
+    id * div(length * (2 * index + length - 1), 2)
   end
 
   defp parse(input) do
