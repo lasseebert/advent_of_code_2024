@@ -16,35 +16,51 @@ defmodule Advent.Day10 do
   """
   @spec part_1(String.t()) :: integer
   def part_1(input) do
+    solve(input, & &1, fn origin, _ -> origin end)
+  end
+
+  @doc """
+  Part 2
+
+  Same algorithm as part 1, but each worklist item is {pos, trail}
+  """
+  @spec part_2(String.t()) :: integer
+  def part_2(input) do
+    solve(input, &[&1], &[&1 | &2])
+  end
+
+  defp solve(input, create_item, update_item) do
     map = input |> parse()
 
+    # Make initial worklist from all 0 places
     worklist =
       Enum.reduce(map, MapSet.new(), fn {pos, value}, worklist ->
         if value == 0 do
-          MapSet.put(worklist, {pos, pos})
+          MapSet.put(worklist, {pos, create_item.(pos)})
         else
           worklist
         end
       end)
 
-    count_trailheads(worklist, map, 1)
+    count_trails(worklist, map, 1, update_item)
   end
 
-  defp count_trailheads(worklist, _map, 10), do: MapSet.size(worklist)
+  defp count_trails(worklist, _map, 10, _update), do: MapSet.size(worklist)
 
-  defp count_trailheads(worklist, map, height) do
-    Enum.reduce(worklist, MapSet.new(), fn {pos, origin}, new_worklist ->
+  defp count_trails(worklist, map, height, update_item) do
+    worklist
+    |> Enum.reduce(MapSet.new(), fn {pos, item}, new_worklist ->
       pos
       |> neighbours()
       |> Enum.reduce(new_worklist, fn neighbour, new_worklist ->
         if Map.get(map, neighbour) == height do
-          MapSet.put(new_worklist, {neighbour, origin})
+          MapSet.put(new_worklist, {neighbour, update_item.(item, neighbour)})
         else
           new_worklist
         end
       end)
     end)
-    |> count_trailheads(map, height + 1)
+    |> count_trails(map, height + 1, update_item)
   end
 
   defp neighbours({x, y}) do
@@ -54,17 +70,6 @@ defmodule Advent.Day10 do
       {x + 1, y},
       {x, y + 1}
     ]
-  end
-
-  @doc """
-  Part 2
-  """
-  @spec part_2(String.t()) :: integer
-  def part_2(input) do
-    input
-    |> parse()
-
-    0
   end
 
   defp parse(input) do
