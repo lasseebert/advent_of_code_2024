@@ -8,33 +8,114 @@ defmodule Advent.Day12 do
   """
   @spec part_1(String.t()) :: integer
   def part_1(input) do
-    map = input |> parse()
+    input
+    |> parse()
+    |> Enum.map(fn region -> area(region) * perimeter(region) end)
+    |> Enum.sum()
+  end
 
+  @doc """
+  Part 2
+  """
+  @spec part_2(String.t()) :: integer
+  def part_2(input) do
+    input
+    |> parse()
+    |> Enum.map(fn region -> area(region) * sides(region) end)
+    |> Enum.sum()
+  end
+
+  defp area(region), do: MapSet.size(region)
+
+  defp perimeter(region) do
+    Enum.reduce(region, 0, fn pos, acc ->
+      pos
+      |> neighbours()
+      |> Enum.reduce(acc, fn neighbour, acc ->
+        if MapSet.member?(region, neighbour) do
+          acc
+        else
+          acc + 1
+        end
+      end)
+    end)
+  end
+
+  defp sides(region) do
+    num_vertical_sides =
+      region
+      |> Enum.flat_map(fn {x, y} ->
+        west = {x - 1, y}
+        east = {x + 1, y}
+
+        # It seems that western and eastern fences that form a straight line
+        # can't be seen as a single side of the fence, so we need to include the
+        # dir in the position.
+        #
+        # This can happen eg here
+        #
+        #  XXXX  <- This easter side
+        #  X   X <- This western side
+        #  XXXXX
+        [
+          if(!MapSet.member?(region, west), do: {:west, {x, y}}),
+          if(!MapSet.member?(region, east), do: {:east, {x, y}})
+        ]
+        |> Enum.reject(&is_nil/1)
+      end)
+      |> Enum.sort()
+      |> Enum.reduce([], fn
+        # When the next segment is in line with the previous we only keep the next
+        {dir, {x, y1}}, [{dir, {x, y2}} | sides] when y1 == y2 + 1 -> [{dir, {x, y1}} | sides]
+        pos, sides -> [pos | sides]
+      end)
+      |> length()
+
+    # I don't have a proof, but I think the horizontal lines always equals the vertical lines.
+    num_vertical_sides * 2
+  end
+
+  defp neighbours({x, y}) do
+    [
+      {x, y - 1},
+      {x - 1, y},
+      {x + 1, y},
+      {x, y + 1}
+    ]
+  end
+
+  defp parse(input) do
+    input
+    |> parse_map()
+    |> find_regions()
+  end
+
+  defp find_regions(map) do
     # A set of all unprocessed positions
     worklist = map |> Map.keys() |> MapSet.new()
 
-    sum_garden_price(worklist, 0, map)
+    find_regions(worklist, [], map)
   end
 
-  defp sum_garden_price(worklist, acc, map) do
+  defp find_regions(worklist, acc, map) do
     if MapSet.size(worklist) == 0 do
       acc
     else
       # TODO: Better way to get a random element from a set?
       pos = worklist |> MapSet.to_list() |> hd()
-      region = get_region(pos, map)
-
+      region = find_region(pos, map)
       worklist = MapSet.difference(worklist, region)
-      price = garden_price(region)
-      sum_garden_price(worklist, acc + price, map)
+
+      find_regions(worklist, [region | acc], map)
     end
   end
 
-  defp get_region(pos, map), do: get_region(Map.fetch!(map, pos), map, MapSet.new([pos]), [pos])
+  # Gets a connected region of the same plant
+  defp find_region(pos, map), do: find_region(Map.fetch!(map, pos), map, MapSet.new([pos]), [pos])
 
-  defp get_region(_plant, _map, region, []), do: region
+  defp find_region(_plant, _map, region, []), do: region
 
-  defp get_region(plant, map, region, [next_pos | unchecked]) do
+  defp find_region(plant, map, region, [next_pos | unchecked]) do
     {region, unchecked} =
       next_pos
       |> neighbours()
@@ -53,50 +134,10 @@ defmodule Advent.Day12 do
         end
       end)
 
-    get_region(plant, map, region, unchecked)
+    find_region(plant, map, region, unchecked)
   end
 
-  defp garden_price(region) do
-    area = MapSet.size(region)
-
-    perimeter =
-      region
-      |> Enum.reduce(0, fn pos, acc ->
-        pos
-        |> neighbours()
-        |> Enum.reduce(acc, fn neighbour, acc ->
-          if MapSet.member?(region, neighbour) do
-            acc
-          else
-            acc + 1
-          end
-        end)
-      end)
-
-    area * perimeter
-  end
-
-  defp neighbours({x, y}) do
-    [
-      {x, y - 1},
-      {x - 1, y},
-      {x + 1, y},
-      {x, y + 1}
-    ]
-  end
-
-  @doc """
-  Part 2
-  """
-  @spec part_2(String.t()) :: integer
-  def part_2(input) do
-    input
-    |> parse()
-
-    0
-  end
-
-  defp parse(input) do
+  defp parse_map(input) do
     input
     |> String.trim()
     |> String.split("\n", trim: true)
