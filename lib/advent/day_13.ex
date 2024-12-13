@@ -15,23 +15,6 @@ defmodule Advent.Day13 do
     |> Enum.sum()
   end
 
-  defp min_tokens({a, b, prize}) do
-    # Most naive solution in the world
-    for(ca <- 0..100, cb <- 0..100, do: {ca, cb})
-    |> Enum.map(&try_combination(&1, a, b, prize))
-    |> Enum.reject(&is_nil/1)
-    |> case do
-      [] -> nil
-      list -> Enum.min(list)
-    end
-  end
-
-  defp try_combination({ca, cb}, {xa, ya}, {xb, yb}, {xp, yp}) do
-    if ca * xa + cb * xb == xp && ca * ya + cb * yb == yp do
-      3 * ca + cb
-    end
-  end
-
   @doc """
   Part 2
   """
@@ -39,8 +22,41 @@ defmodule Advent.Day13 do
   def part_2(input) do
     input
     |> parse()
+    |> Enum.map(fn {a, b, {px, py}} ->
+      {a, b, {px + 10_000_000_000_000, py + 10_000_000_000_000}}
+    end)
+    |> Enum.map(&min_tokens/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.sum()
+  end
 
-    0
+  # We have two equations with two unknowns:
+  #
+  # px = a * ax + b * bx
+  # py = a * ay + b * by
+  #
+  # Scripling on the paper, I got to:
+  #
+  # a = (px - b * bx) / ax
+  # b = (ax * py - ay * px) / (ax * by - ay * bx)
+  #
+  # I use this to find integer solutions
+  defp min_tokens({{ax, ay}, {bx, by}, {px, py}}) do
+    d1 = ax * py - ay * px
+    d2 = ax * by - ay * bx
+
+    if rem(d1, d2) == 0 do
+      b = div(d1, d2)
+
+      d3 = px - b * bx
+      d4 = ax
+
+      if rem(d3, d4) == 0 do
+        a = div(d3, d4)
+
+        3 * a + b
+      end
+    end
   end
 
   defp parse(input) do
