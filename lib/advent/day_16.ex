@@ -15,42 +15,96 @@ defmodule Advent.Day16 do
 
     queue = PQueue2.new() |> PQueue2.put(pos, heuristic(pos, goal))
     g_scores = %{} |> Map.put(pos, 0)
+    came_from = %{}
 
-    a_star(queue, g_scores, map, goal)
+    queue
+    |> a_star(g_scores, came_from, map, goal)
+    |> hd()
+    |> Enum.map(fn {_node, distance} -> distance end)
+    |> Enum.sum()
   end
 
-  defp a_star(queue, g_scores, map, goal) do
-    {current, queue} = PQueue2.pop(queue)
-    {pos, _dir} = current
+  @doc """
+  Part 2
+  """
+  @spec part_2(String.t()) :: integer
+  def part_2(input) do
+    {map, source, goal} = input |> parse()
 
-    if pos == goal do
-      Map.fetch!(g_scores, current)
+    dir = {1, 0}
+    pos = {source, dir}
+
+    queue = PQueue2.new() |> PQueue2.put(pos, heuristic(pos, goal))
+    g_scores = %{} |> Map.put(pos, 0)
+    came_from = %{}
+
+    queue
+    |> a_star(g_scores, came_from, map, goal)
+    |> Enum.flat_map(fn route ->
+      Enum.map(route, fn {{pos, _dir}, _dist} -> pos end)
+    end)
+    |> Enum.uniq()
+    |> length()
+    |> Kernel.+(1) # The route does not include the end node
+  end
+
+  # Standard A* algorithm except that we find all smallest paths.
+  # We do this by storing multiple "came_from" for each node, when the distance
+  # to that node is the same via another route. We use this to construct
+  # multiple paths at the end.
+  defp a_star(queue, g_scores, came_from, map, goal) do
+    {current, queue} = PQueue2.pop(queue)
+
+    if elem(current, 0) == goal do
+      # End condition
+      # When the goal is the next node to check for neighbours, we have found all
+      # smallest paths to the goal.
+      reconstruct_routes(current, came_from)
     else
       current_g = Map.fetch!(g_scores, current)
 
-      {queue, g_scores} =
+      {queue, g_scores, came_from} =
         current
         |> neighbours(map)
-        |> Enum.reduce({queue, g_scores}, fn {neighbour, distance}, {queue, g_scores} ->
+        |> Enum.reduce({queue, g_scores, came_from}, fn {neighbour, distance}, {queue, g_scores, came_from} ->
           g_score = current_g + distance
 
-          case Map.fetch(g_scores, neighbour) do
-            :error ->
+          case Map.get(g_scores, neighbour) do
+            # Current path to the neighbour is the smallest yet
+            larger when is_nil(larger) or g_score < larger ->
               g_scores = Map.put(g_scores, neighbour, g_score)
               queue = PQueue2.put(queue, neighbour, g_score + heuristic(neighbour, goal))
-              {queue, g_scores}
+              came_from = Map.put(came_from, neighbour, [{current, distance}])
+              {queue, g_scores, came_from}
 
-            {:ok, larger} when g_score < larger ->
-              g_scores = Map.put(g_scores, neighbour, g_score)
-              queue = PQueue2.put(queue, neighbour, g_score + heuristic(neighbour, goal))
-              {queue, g_scores}
+            same when g_score == same ->
+              # Current path to the neighbour is the same as one previously
+              # seen. Add to the came_from, but don't update the queue
+              came_from = Map.update!(came_from, neighbour, &[{current, distance} | &1])
+              {queue, g_scores, came_from}
 
-            {:ok, _smaller} ->
-              {queue, g_scores}
+            _smaller ->
+              # Larger distance to the neighbour than previously discovered. Skip.
+              {queue, g_scores, came_from}
           end
         end)
 
-      a_star(queue, g_scores, map, goal)
+      a_star(queue, g_scores, came_from, map, goal)
+    end
+  end
+
+  defp reconstruct_routes(node, came_from) do
+    came_from
+    |> Map.fetch(node)
+    |> case do
+      :error -> [[]]
+      {:ok, prev_nodes} ->
+        prev_nodes
+        |> Enum.flat_map(fn {previous, distance} ->
+          previous
+          |> reconstruct_routes(came_from)
+          |> Enum.map(&[{previous, distance} | &1])
+        end)
     end
   end
 
@@ -102,17 +156,6 @@ defmodule Advent.Day16 do
     manhattan = abs(x1 - x2) + abs(y1 - y2)
 
     turns * 1000 + manhattan
-  end
-
-  @doc """
-  Part 2
-  """
-  @spec part_2(String.t()) :: integer
-  def part_2(input) do
-    input
-    |> parse()
-
-    0
   end
 
   defp parse(input) do
