@@ -45,7 +45,8 @@ defmodule Advent.Day16 do
     end)
     |> Enum.uniq()
     |> length()
-    |> Kernel.+(1) # The route does not include the end node
+    # The route does not include the end node
+    |> Kernel.+(1)
   end
 
   # Standard A* algorithm except that we find all smallest paths.
@@ -97,7 +98,9 @@ defmodule Advent.Day16 do
     came_from
     |> Map.fetch(node)
     |> case do
-      :error -> [[]]
+      :error ->
+        [[]]
+
       {:ok, prev_nodes} ->
         prev_nodes
         |> Enum.flat_map(fn {previous, distance} ->
