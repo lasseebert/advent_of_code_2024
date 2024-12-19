@@ -10,35 +10,63 @@ defmodule Advent.Day19 do
   def part_1(input) do
     {towels, patterns} = input |> parse()
 
-    Enum.count(patterns, &valid?(&1, towels))
-  end
+    patterns
+    |> Enum.reduce({0, %{}}, fn pattern, {count, cache} ->
+      {combos, cache} = count_combos(pattern, towels, cache)
 
-  defp valid?([], _towels), do: true
+      count =
+        if combos > 0 do
+          count + 1
+        else
+          count
+        end
 
-  defp valid?(pattern, towels) do
-    towels
-    |> Enum.filter(&prefix?(&1, pattern))
-    |> Enum.any?(fn towel ->
-      pattern
-      |> Enum.drop(length(towel))
-      |> valid?(towels)
+      {count, cache}
     end)
+    |> elem(0)
   end
-
-  defp prefix?([], _pattern), do: true
-  defp prefix?([a | towel], [a | pattern]), do: prefix?(towel, pattern)
-  defp prefix?(_towel, _pattern), do: false
 
   @doc """
   Part 2
   """
   @spec part_2(String.t()) :: integer
   def part_2(input) do
-    input
-    |> parse()
+    {towels, patterns} = input |> parse()
 
-    0
+    patterns
+    |> Enum.reduce({0, %{}}, fn pattern, {count, cache} ->
+      {combos, cache} = count_combos(pattern, towels, cache)
+      {count + combos, cache}
+    end)
+    |> elem(0)
   end
+
+  defp count_combos([], _towels, cache), do: {1, cache}
+
+  defp count_combos(pattern, towels, cache) do
+    case Map.fetch(cache, pattern) do
+      {:ok, count} ->
+        {count, cache}
+
+      :error ->
+        towels
+        |> Enum.filter(&prefix?(&1, pattern))
+        |> Enum.reduce({0, cache}, fn towel, {count, cache} ->
+          {d_count, cache} =
+            pattern
+            |> Enum.drop(length(towel))
+            |> count_combos(towels, cache)
+
+          count = count + d_count
+          cache = Map.put(cache, pattern, count)
+          {count, cache}
+        end)
+    end
+  end
+
+  defp prefix?([], _pattern), do: true
+  defp prefix?([a | towel], [a | pattern]), do: prefix?(towel, pattern)
+  defp prefix?(_towel, _pattern), do: false
 
   defp parse(input) do
     input
