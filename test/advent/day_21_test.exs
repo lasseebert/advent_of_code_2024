@@ -38,6 +38,26 @@ defmodule Advent.Day21Test do
       assert Day21.part_1("379A") == 64 * 379
     end
 
+    test "small example 6" do
+      assert Day21.part_1("973A") == 68 * 973
+    end
+
+    test "small example 7" do
+      assert Day21.part_1("836A") == 58520
+    end
+
+    test "small example 8" do
+      assert Day21.part_1("780A") == 51480
+    end
+
+    test "small example 9" do
+      assert Day21.part_1("985A") == 65010
+    end
+
+    test "small example 10" do
+      assert Day21.part_1("413A") == 28910
+    end
+
     @tag :puzzle_input
     test "puzzle input" do
       assert Day21.part_1(@puzzle_input) == 270_084
@@ -45,14 +65,10 @@ defmodule Advent.Day21Test do
   end
 
   describe "part 2" do
-    @tag :skip
-    test "example" do
-      assert Day21.part_2(@example_input) == :foo
-    end
-
-    @tag :skip
     @tag :puzzle_input
     test "puzzle input" do
+      assert Day21.part_2(@puzzle_input) > 162_204_717_002_258
+      assert Day21.part_2(@puzzle_input) < 407_013_456_261_524
       assert Day21.part_2(@puzzle_input) == :foo
     end
   end

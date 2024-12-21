@@ -8,25 +8,96 @@ defmodule Advent.Day21 do
   """
   @spec part_1(String.t()) :: integer
   def part_1(input) do
+    solve(input, 2)
+  end
+
+  @doc """
+  Part 2
+  """
+  @spec part_2(String.t()) :: integer
+  def part_2(input) do
+    solve(input, 25)
+  end
+
+  defp solve(input, num_keypads) do
     input
     |> parse()
-    |> Enum.map(fn code ->
-      code
-      |> digit_path()
-      |> arrow_path()
-      |> arrow_path()
-      |> Enum.min_by(&length/1)
-      |> complexity(code)
-    end)
+    |> Enum.map(&complexity(&1, num_keypads))
     |> Enum.sum()
   end
 
-  defp complexity(presses, code) do
+  defp complexity(code, num_keypads) do
     code_number = code |> Enum.take(3) |> Enum.reduce(0, fn n, acc -> acc * 10 + n end)
-    length(presses) * code_number
+
+    press_series = code |> digit_path()
+
+    final_length =
+      press_series
+      |> Enum.map(fn presses ->
+        final_length(presses, num_keypads, %{})
+        |> elem(1)
+      end)
+      |> Enum.min()
+
+    code_number * final_length
   end
 
-  defp digit_path(digits) do
+  defp final_length(presses, 0, cache), do: {cache, length(presses)}
+
+  defp final_length(presses, num_keypads, cache) do
+    # IO.inspect({presses, num_keypads, cache}, label: "final_length")
+    # Split list into multiple lists on "A"
+    presses
+    |> Enum.chunk_while(
+      [],
+      fn x, acc ->
+        if x == "A" do
+          {:cont, Enum.reverse([x | acc]), []}
+        else
+          {:cont, [x | acc]}
+        end
+      end,
+      fn [] -> {:cont, []} end
+    )
+    # |> IO.inspect(label: "chunk_while")
+    |> Enum.reduce({cache, 0}, fn list, {cache, sum} ->
+      # IO.inspect(list, label: "list")
+      {cache, len} = single_final_length(list, num_keypads, cache)
+      {cache, sum + len}
+    end)
+  end
+
+  defp single_final_length(presses, num_keypads, cache) do
+    # IO.inspect({presses, num_keypads, cache}, label: "single_final_length")
+    case Map.fetch(cache, {presses, num_keypads}) do
+      {:ok, value} ->
+        # IO.puts("In cache!")
+        {cache, value}
+
+      :error ->
+        # IO.puts("Not in cache")
+        {cache, value} =
+          ["A" | presses]
+          |> arrow_path()
+          |> Enum.reduce({cache, nil}, fn list, {cache, min} ->
+            {cache, len} = final_length(list, num_keypads - 1, cache)
+
+            min =
+              case min do
+                nil -> len
+                _ -> Enum.min([min, len])
+              end
+
+            {cache, min}
+          end)
+
+        # IO.inspect({Enum.count(cache), presses, value, num_keypads}, label: "single_final_length")
+        # Process.sleep(100)
+        {Map.put(cache, {presses, num_keypads}, value), value}
+    end
+  end
+
+  def digit_path(digits) do
     ["A" | digits]
     |> Enum.map(&digit_position/1)
     |> Enum.chunk_every(2, 1, :discard)
@@ -34,15 +105,12 @@ defmodule Advent.Day21 do
     |> unpack()
   end
 
-  defp arrow_path(press_series) do
-    press_series
-    |> Enum.flat_map(fn presses ->
-      ["A" | presses]
-      |> Enum.map(&arrow_position/1)
-      |> Enum.chunk_every(2, 1, :discard)
-      |> Enum.map(fn [source, target] -> presses(source, target, {0, 0}) end)
-      |> unpack()
-    end)
+  def arrow_path(presses) do
+    presses
+    |> Enum.map(&arrow_position/1)
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [source, target] -> presses(source, target, {0, 0}) end)
+    |> unpack()
   end
 
   defp unpack([]), do: [[]]
@@ -128,17 +196,6 @@ defmodule Advent.Day21 do
   defp arrow_position("<"), do: {0, 1}
   defp arrow_position("v"), do: {1, 1}
   defp arrow_position(">"), do: {2, 1}
-
-  @doc """
-  Part 2
-  """
-  @spec part_2(String.t()) :: integer
-  def part_2(input) do
-    input
-    |> parse()
-
-    0
-  end
 
   defp parse(input) do
     input
